@@ -10,7 +10,7 @@ type DepRelation = {
   }
 }
 
-const projectRoot = resolve(__dirname, './deps_2')
+const projectRoot = resolve(__dirname, './deps_nested')
 
 const depRelation: DepRelation = {}
 

@@ -8,7 +8,7 @@ type DepRelation = {
   code: string
 }
 
-const projectRoot = resolve(__dirname, './deps_1')
+const projectRoot = resolve(__dirname, './deps')
 
 const depRelation: DepRelation = {
   deps: [],
