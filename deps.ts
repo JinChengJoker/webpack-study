@@ -1,33 +1,42 @@
-import { parse } from "@babel/parser";
+import {parse} from "@babel/parser";
 import traverse from "@babel/traverse";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import {readFileSync} from "fs";
+import {resolve, relative, dirname} from "path";
 
 type DepRelation = {
-  deps: string[],
-  code: string
+  [key: string]: {
+    deps: string[],
+    code: string
+  }
 }
 
 const projectRoot = resolve(__dirname, './deps')
 
-const depRelation: DepRelation = {
-  deps: [],
-  code: '',
-}
+const depRelation: DepRelation = {}
 
 const collectDepsAndCode = (filepath: string) => {
+  const key = getRelativePath(filepath)
   const code = readFileSync(filepath).toString()
-  const ast = parse(code, { sourceType: 'module' })
+  const ast = parse(code, {sourceType: 'module'})
 
-  depRelation.code = code
+  depRelation[key] = {
+    deps: [],
+    code
+  }
 
   traverse(ast, {
     enter: item => {
       if (item.node.type === 'ImportDeclaration') {
-        depRelation.deps.push(item.node.source.value)
+        const absolutePath = resolve(dirname(filepath), item.node.source.value)
+        const relativePath = getRelativePath(absolutePath)
+        depRelation[key].deps.push(relativePath)
       }
     }
   })
+}
+
+const getRelativePath = (path: string) => {
+  return relative(projectRoot, path).replace(/\\/g, '/')
 }
 
 collectDepsAndCode(resolve(projectRoot, 'index.js'))
