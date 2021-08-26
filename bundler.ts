@@ -1,6 +1,6 @@
 import {parse} from "@babel/parser";
 import traverse from "@babel/traverse";
-import {readFileSync} from "fs";
+import {readFileSync, writeFileSync} from "fs";
 import {resolve, relative, dirname} from "path";
 import * as babel from '@babel/core'
 
@@ -50,4 +50,45 @@ const getRelativePath = (path: string) => {
 
 collectDepsAndCode(resolve(projectRoot, 'index.js'))
 
-console.log(depRelation)
+let code = ''
+
+code += `var depRelation = [
+  ${depRelation.map(dr => `{
+    key: ${JSON.stringify(dr.key)},
+    deps: ${JSON.stringify(dr.deps)},
+    code: function(require, module, exports) {
+      ${dr.code}
+    },
+  }`).join(',')}
+]
+
+var modules = {}
+
+function pathToKey(dirname, path) {
+  return (dirname + path).replace(/\\.\\//g, '').replace(/\\/\\//, '/')
+}
+
+function execute(key) {
+  if (modules[key]) { return modules[key] }
+  var dr
+  for (var i = 0; i<depRelation.length; i++) {
+    if(depRelation[i].key === key) {
+      dr = depRelation[i]
+      break
+    }
+  }
+  var require = function (path) {
+    var dirname = key.substring(0, key.lastIndexOf('/') + 1)
+    return execute(pathToKey(dirname, path))
+  }
+  var exports = {__esModule: true}
+  var module = {exports: exports}
+  modules[key] = exports
+  dr.code(require, module, modules[key])
+  return modules[key]
+}
+
+execute(depRelation[0].key)
+`
+
+writeFileSync(resolve(projectRoot, './dist.js'), code)
