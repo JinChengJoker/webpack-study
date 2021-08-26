@@ -5,38 +5,39 @@ import {resolve, relative, dirname} from "path";
 import * as babel from '@babel/core'
 
 type DepRelation = {
-  [key: string]: {
-    deps: string[],
-    code: string | undefined | null
-  }
+  key: string,
+  deps: string[],
+  code: string | undefined | null
 }
 
 const projectRoot = resolve(__dirname, './bundler')
 
-const depRelation: DepRelation = {}
+const depRelation: DepRelation[] = []
 
 const collectDepsAndCode = (filepath: string) => {
   const key = getRelativePath(filepath)
 
-  if (Object.keys(depRelation).includes(key)) return
+  if (depRelation.find(i => i.key === key)) return
 
   const code = readFileSync(filepath).toString()
   const ast = parse(code, {sourceType: 'module'})
   const result = babel.transform(code, {
     presets: ['@babel/preset-env']
   })
-
-  depRelation[key] = {
+  const dr: DepRelation = {
+    key,
     deps: [],
     code: result?.code
   }
+
+  depRelation.push(dr)
 
   traverse(ast, {
     enter: item => {
       if (item.node.type === 'ImportDeclaration') {
         const absolutePath = resolve(dirname(filepath), item.node.source.value)
         const relativePath = getRelativePath(absolutePath)
-        depRelation[key].deps.push(relativePath)
+        dr.deps.push(relativePath)
         collectDepsAndCode(absolutePath)
       }
     }
