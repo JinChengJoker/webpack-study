@@ -22,13 +22,7 @@ const collectDepsAndCode = (filepath: string) => {
   let code = readFileSync(filepath).toString()
 
   if (/\.css$/.test(filepath)) {
-    code = `
-      if (document) {
-        const styleElement = document.createElement('style')
-        styleElement.innerHTML = ${JSON.stringify(code)}
-        document.head.appendChild(styleElement)
-      }
-    `
+    code = require('./loaders/style-loader.js')(code)
   }
 
   const ast = parse(code, {sourceType: 'module'})
